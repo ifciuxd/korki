@@ -1,6 +1,8 @@
 import {
   LayoutDashboard,
   Users,
+  UserCog,
+  Clock,
   Calendar,
   BookOpen,
   Wallet,
@@ -12,6 +14,8 @@ import type { NavItem } from '@/components/shared/sidebar-nav';
 const adminNavItems: NavItem[] = [
   { title: 'Dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
   { title: 'Uczniowie', href: '/admin/students', icon: Users },
+  { title: 'Rodzice', href: '/admin/parents', icon: UserCog },
+  { title: 'Dostępność', href: '/admin/availability', icon: Clock },
   { title: 'Kalendarz', href: '/admin/calendar', icon: Calendar },
   { title: 'Materiały', href: '/admin/materials', icon: BookOpen },
   { title: 'Finanse', href: '/admin/finances', icon: Wallet },

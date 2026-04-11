@@ -8,28 +8,23 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { InviteStudentDialog } from '@/components/admin/invite-student-dialog';
-import { listStudents } from '@/db/queries/students';
-import { listParentsForSelect } from '@/db/queries/parents';
+import { InviteParentDialog } from '@/components/admin/invite-parent-dialog';
+import { listParents } from '@/db/queries/parents';
 import { formatDatePL } from '@/lib/utils/dates';
-import { EXAM_TARGETS } from '@/lib/constants';
 
-export default async function StudentsPage() {
-  const [students, parents] = await Promise.all([
-    listStudents(),
-    listParentsForSelect(),
-  ]);
+export default async function ParentsPage() {
+  const parents = await listParents();
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Uczniowie</h1>
+          <h1 className="text-3xl font-bold">Rodzice</h1>
           <p className="text-sm text-muted-foreground">
-            Lista zarejestrowanych uczniów.
+            Lista zarejestrowanych rodziców i ich dzieci.
           </p>
         </div>
-        <InviteStudentDialog parents={parents} />
+        <InviteParentDialog />
       </div>
 
       <div className="rounded-lg border">
@@ -37,38 +32,37 @@ export default async function StudentsPage() {
           <TableHeader>
             <TableRow>
               <TableHead>Imię i nazwisko</TableHead>
-              <TableHead>Klasa</TableHead>
-              <TableHead>Cel egzaminu</TableHead>
-              <TableHead>Rodzic</TableHead>
               <TableHead>Email</TableHead>
+              <TableHead>Telefon</TableHead>
+              <TableHead>Dzieci</TableHead>
               <TableHead>Dodano</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {students.length === 0 ? (
+            {parents.length === 0 ? (
               <TableEmpty>
-                Brak zarejestrowanych uczniów. Wyślij pierwsze zaproszenie.
+                Brak zarejestrowanych rodziców. Wyślij pierwsze zaproszenie.
               </TableEmpty>
             ) : (
-              students.map((student) => (
-                <TableRow key={student.id}>
+              parents.map((parent) => (
+                <TableRow key={parent.id}>
                   <TableCell className="font-medium">
-                    {student.firstName} {student.lastName}
+                    {parent.firstName} {parent.lastName}
                   </TableCell>
-                  <TableCell>{student.gradeLevel}</TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {parent.email}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {parent.phone ?? '—'}
+                  </TableCell>
                   <TableCell>
-                    <Badge variant="outline">
-                      {EXAM_TARGETS[student.examTarget]}
+                    <Badge variant="secondary">
+                      {parent.childrenCount}{' '}
+                      {parent.childrenCount === 1 ? 'dziecko' : 'dzieci'}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {student.parentName ?? '—'}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {student.email}
-                  </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
-                    {formatDatePL(student.createdAt)}
+                    {formatDatePL(parent.createdAt)}
                   </TableCell>
                 </TableRow>
               ))
