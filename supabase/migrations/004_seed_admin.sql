@@ -1,0 +1,23 @@
+-- 004_seed_admin.sql
+-- Testowe konto admina (korepetytora)
+--
+-- Email: admin@korki.pl
+-- Hasło: ustawiasz przez Supabase Auth (patrz README)
+--
+-- Aby stworzyć konto testowe:
+-- 1. Wejdź w Supabase Dashboard → Authentication → Users → Add User
+-- 2. Email: admin@korki.pl, Password: Test1234!, Auto Confirm: ON
+-- 3. Skopiuj UUID nowego usera
+-- 4. Wstaw poniżej w miejsce 'REPLACE_WITH_AUTH_USER_ID'
+
+-- Jeśli tworzysz usera przez SQL (np. po supabase auth.admin create):
+-- INSERT INTO users (id, email, role, first_name, last_name, phone, timezone)
+-- VALUES (
+--   'REPLACE_WITH_AUTH_USER_ID',
+--   'admin@korki.pl',
+--   'admin',
+--   'Korepetytor',
+--   'Testowy',
+--   '+48123456789',
+--   'Europe/Warsaw'
+-- );

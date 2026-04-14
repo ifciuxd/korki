@@ -9,7 +9,8 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate"
+    "db:migrate": "drizzle-kit migrate",
+    "db:seed-admin": "npx ts-node --esm scripts/seed-admin.ts"
   },
   "dependencies": {
     "@date-fns/tz": "^1.4.1",
