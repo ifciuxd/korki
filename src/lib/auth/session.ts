@@ -13,10 +13,23 @@ export interface Session {
   lastName: string;
 }
 
+// DEV bypass — set AUTH_BYPASS=true to skip auth and act as admin
+const AUTH_BYPASS = process.env.AUTH_BYPASS === 'true';
+
+const MOCK_SESSION: Session = {
+  userId: '00000000-0000-0000-0000-000000000000',
+  email: 'admin@korki.pl',
+  role: 'admin',
+  firstName: 'Korepetytor',
+  lastName: 'Testowy',
+};
+
 /**
  * Gets the current session. Returns null if not authenticated.
  */
 export async function getSession(): Promise<Session | null> {
+  if (AUTH_BYPASS) return MOCK_SESSION;
+
   try {
     const supabase = await createClient();
     const {
@@ -67,6 +80,8 @@ export async function requireAuth(): Promise<Session> {
  * Requires a specific role. Redirects to appropriate dashboard if wrong role.
  */
 export async function requireRole(role: UserRole): Promise<Session> {
+  if (AUTH_BYPASS) return { ...MOCK_SESSION, role };
+
   const session = await requireAuth();
   if (session.role !== role) {
     redirect(getDashboardPath(session.role));

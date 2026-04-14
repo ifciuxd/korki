@@ -15,6 +15,11 @@ export async function proxy(request: NextRequest) {
   const { user, supabaseResponse } = await updateSession(request);
   const { pathname } = request.nextUrl;
 
+  // DEV bypass — skip all auth checks
+  if (process.env.AUTH_BYPASS === 'true') {
+    return supabaseResponse;
+  }
+
   // Allow public routes
   if (PUBLIC_ROUTES.some((route) => pathname === route)) {
     return supabaseResponse;
