@@ -17,34 +17,39 @@ export interface Session {
  * Gets the current session. Returns null if not authenticated.
  */
 export async function getSession(): Promise<Session | null> {
-  const supabase = await createClient();
-  const {
-    data: { user: authUser },
-  } = await supabase.auth.getUser();
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user: authUser },
+    } = await supabase.auth.getUser();
 
-  if (!authUser) return null;
+    if (!authUser) return null;
 
-  const [dbUser] = await db
-    .select({
-      id: users.id,
-      email: users.email,
-      role: users.role,
-      firstName: users.firstName,
-      lastName: users.lastName,
-    })
-    .from(users)
-    .where(eq(users.id, authUser.id))
-    .limit(1);
+    const [dbUser] = await db
+      .select({
+        id: users.id,
+        email: users.email,
+        role: users.role,
+        firstName: users.firstName,
+        lastName: users.lastName,
+      })
+      .from(users)
+      .where(eq(users.id, authUser.id))
+      .limit(1);
 
-  if (!dbUser) return null;
+    if (!dbUser) return null;
 
-  return {
-    userId: dbUser.id,
-    email: dbUser.email,
-    role: dbUser.role as UserRole,
-    firstName: dbUser.firstName,
-    lastName: dbUser.lastName,
-  };
+    return {
+      userId: dbUser.id,
+      email: dbUser.email,
+      role: dbUser.role as UserRole,
+      firstName: dbUser.firstName,
+      lastName: dbUser.lastName,
+    };
+  } catch {
+    // If Supabase/DB is not configured or unreachable, treat as unauthenticated
+    return null;
+  }
 }
 
 /**

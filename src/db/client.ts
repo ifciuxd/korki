@@ -5,9 +5,13 @@ import * as schema from './schema';
 function createDb() {
   const connectionString = process.env.DATABASE_URL;
   if (!connectionString) {
-    throw new Error('DATABASE_URL environment variable is not set');
+    throw new Error(
+      'DATABASE_URL environment variable is not set. Add it to .env.local or Vercel environment variables.',
+    );
   }
-  const client = postgres(connectionString);
+  const client = postgres(connectionString, {
+    prepare: false, // required for Supabase Transaction pooler (port 6543)
+  });
   return drizzle(client, { schema });
 }
 

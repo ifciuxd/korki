@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import {
   LayoutDashboard,
   Users,
@@ -5,6 +7,8 @@ import {
   Clock,
   Calendar,
   BookOpen,
+  ClipboardList,
+  MessageCircle,
   Wallet,
 } from 'lucide-react';
 import { requireRole } from '@/lib/auth/session';
@@ -18,6 +22,8 @@ const adminNavItems: NavItem[] = [
   { title: 'Dostępność', href: '/admin/availability', icon: Clock },
   { title: 'Kalendarz', href: '/admin/calendar', icon: Calendar },
   { title: 'Materiały', href: '/admin/materials', icon: BookOpen },
+  { title: 'Zadania', href: '/admin/tasks', icon: ClipboardList },
+  { title: 'Q&A', href: '/admin/qa', icon: MessageCircle },
   { title: 'Finanse', href: '/admin/finances', icon: Wallet },
 ];
 

@@ -4,9 +4,7 @@ import {
   Clock,
   CheckCircle2,
   AlertCircle,
-  Send,
   ChevronRight,
-  Star,
 } from 'lucide-react';
 import {
   Card,
@@ -16,73 +14,66 @@ import {
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { requireRole } from '@/lib/auth/session';
-import { getStudentProfileIdByUserId } from '@/db/queries/student-session';
-import { listTasksForStudent, countTasksForStudent } from '@/db/queries/tasks';
+import { CreateTaskDialog } from '@/components/admin/create-task-dialog';
+import { listAllTasks } from '@/db/queries/tasks';
+import { listStudents } from '@/db/queries/students';
 import { formatDatePL, formatDateTimePL } from '@/lib/utils/dates';
 
 const STATUS_CONFIG: Record<
   string,
-  { label: string; variant: 'default' | 'warning' | 'success' | 'secondary'; icon: typeof Clock }
+  { label: string; variant: 'default' | 'warning' | 'success' | 'secondary' | 'destructive'; icon: typeof Clock }
 > = {
   todo: { label: 'Do zrobienia', variant: 'secondary', icon: Clock },
-  submitted: { label: 'Przesłane', variant: 'warning', icon: Send },
+  submitted: { label: 'Przesłane', variant: 'warning', icon: AlertCircle },
   graded: { label: 'Ocenione', variant: 'success', icon: CheckCircle2 },
-  returned: { label: 'Do poprawy', variant: 'default', icon: AlertCircle },
+  returned: { label: 'Zwrócone', variant: 'default', icon: ClipboardList },
 };
 
-export default async function StudentTasksPage() {
-  const session = await requireRole('student');
-  const profileId = await getStudentProfileIdByUserId(session.userId);
-
-  if (!profileId) {
-    return (
-      <div className="flex flex-col items-center justify-center py-20">
-        <p className="text-muted-foreground">
-          Profil ucznia nie został znaleziony.
-        </p>
-      </div>
-    );
-  }
-
-  const [allTasks, counts] = await Promise.all([
-    listTasksForStudent(profileId),
-    countTasksForStudent(profileId),
+export default async function AdminTasksPage() {
+  const [allTasks, students] = await Promise.all([
+    listAllTasks(100),
+    listStudents(),
   ]);
 
-  const todoTasks = allTasks.filter(
-    (t) => t.status === 'todo' || t.status === 'returned',
-  );
-  const submittedTasks = allTasks.filter((t) => t.status === 'submitted');
-  const gradedTasks = allTasks.filter((t) => t.status === 'graded');
+  const studentOptions = students.map((s) => ({
+    id: s.id,
+    label: `${s.firstName} ${s.lastName} (${s.gradeLevel})`,
+  }));
+
+  const pendingReview = allTasks.filter((t) => t.status === 'submitted');
+  const activeTasks = allTasks.filter((t) => t.status === 'todo' || t.status === 'returned');
+  const completedTasks = allTasks.filter((t) => t.status === 'graded');
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Zadania domowe</h1>
-        <p className="text-sm text-muted-foreground">
-          Twoje zadania od korepetytora
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">Zadania</h1>
+          <p className="text-sm text-muted-foreground">
+            Zarządzaj zadaniami domowymi uczniów
+          </p>
+        </div>
+        <CreateTaskDialog students={studentOptions} />
       </div>
 
       {/* Stats */}
       <div className="grid gap-4 sm:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Do zrobienia</CardTitle>
-            <Clock className="h-4 w-4 text-amber-500" />
+            <CardTitle className="text-sm font-medium">Do sprawdzenia</CardTitle>
+            <AlertCircle className="h-4 w-4 text-amber-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{counts.todo}</div>
+            <div className="text-2xl font-bold">{pendingReview.length}</div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Przesłane</CardTitle>
-            <Send className="h-4 w-4 text-blue-500" />
+            <CardTitle className="text-sm font-medium">Aktywne</CardTitle>
+            <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{counts.submitted}</div>
+            <div className="text-2xl font-bold">{activeTasks.length}</div>
           </CardContent>
         </Card>
         <Card>
@@ -91,42 +82,36 @@ export default async function StudentTasksPage() {
             <CheckCircle2 className="h-4 w-4 text-emerald-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{counts.graded}</div>
+            <div className="text-2xl font-bold">{completedTasks.length}</div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Task tabs */}
-      <Tabs defaultValue="todo">
+      {/* Tabs */}
+      <Tabs defaultValue="review">
         <TabsList>
-          <TabsTrigger value="todo">
-            Do zrobienia ({todoTasks.length})
+          <TabsTrigger value="review">
+            Do sprawdzenia ({pendingReview.length})
           </TabsTrigger>
-          <TabsTrigger value="submitted">Przesłane</TabsTrigger>
-          <TabsTrigger value="graded">Ocenione</TabsTrigger>
+          <TabsTrigger value="active">Aktywne</TabsTrigger>
+          <TabsTrigger value="all">Wszystkie</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="todo">
-          <TaskList tasks={todoTasks} />
+        <TabsContent value="review">
+          <TaskList tasks={pendingReview} />
         </TabsContent>
-        <TabsContent value="submitted">
-          <TaskList tasks={submittedTasks} />
+        <TabsContent value="active">
+          <TaskList tasks={activeTasks} />
         </TabsContent>
-        <TabsContent value="graded">
-          <TaskList tasks={gradedTasks} showGrade />
+        <TabsContent value="all">
+          <TaskList tasks={allTasks} />
         </TabsContent>
       </Tabs>
     </div>
   );
 }
 
-function TaskList({
-  tasks,
-  showGrade = false,
-}: {
-  tasks: Awaited<ReturnType<typeof listTasksForStudent>>;
-  showGrade?: boolean;
-}) {
+function TaskList({ tasks }: { tasks: ReturnType<typeof listAllTasks> extends Promise<infer T> ? T : never }) {
   if (tasks.length === 0) {
     return (
       <Card>
@@ -147,7 +132,7 @@ function TaskList({
         return (
           <Link
             key={task.id}
-            href={`/student/tasks/${task.id}`}
+            href={`/admin/tasks/${task.id}`}
             className="flex items-center gap-4 rounded-xl border bg-card p-4 transition-colors hover:bg-muted/30"
           >
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
@@ -156,16 +141,15 @@ function TaskList({
             <div className="min-w-0 flex-1">
               <p className="truncate font-medium">{task.title}</p>
               <p className="text-sm text-muted-foreground">
-                {task.dueDate && `Termin: ${formatDatePL(task.dueDate)} · `}
+                {task.studentName}
+                {task.dueDate && ` · termin: ${formatDatePL(task.dueDate)}`}
+                {' · '}
                 {formatDateTimePL(task.createdAt)}
               </p>
             </div>
             <div className="flex items-center gap-2">
-              {showGrade && task.grade && (
-                <div className="flex items-center gap-1">
-                  <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
-                  <span className="font-bold">{task.grade}/5</span>
-                </div>
+              {task.grade && (
+                <Badge variant="success">{task.grade}/5</Badge>
               )}
               <Badge variant={config.variant}>{config.label}</Badge>
               <ChevronRight className="h-4 w-4 text-muted-foreground" />
