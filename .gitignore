@@ -37,6 +37,15 @@ yarn-error.log*
 # vercel
 .vercel
 
+# claude code / mcp
+.agents/
+.claude/
+.mcp.json
+skills-lock.json
+
+# supabase temp
+supabase/.temp/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
