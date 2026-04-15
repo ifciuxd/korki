@@ -5,65 +5,57 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
   Users,
   Calendar,
   Clock,
   UserCog,
-  ChevronRight,
   Plus,
+  BookOpen,
+  ClipboardList,
+  MessageCircle,
+  Settings,
 } from 'lucide-react';
-import { countStudents } from '@/db/queries/students';
-import { countParents } from '@/db/queries/parents';
-import { listAvailabilitySlots } from '@/db/queries/availability';
-import { countUpcomingLessons, listLessonsInRange } from '@/db/queries/lessons';
-import { formatTimePL } from '@/lib/utils/dates';
 
-const DAY_NAMES: Record<number, string> = {
-  0: 'Niedziela',
-  1: 'Poniedziałek',
-  2: 'Wtorek',
-  3: 'Środa',
-  4: 'Czwartek',
-  5: 'Piątek',
-  6: 'Sobota',
-};
+export const dynamic = 'force-dynamic';
 
-function getWeekRange() {
-  const now = new Date();
-  const day = now.getDay();
-  const monday = new Date(now);
-  monday.setDate(now.getDate() - day + (day === 0 ? -6 : 1));
-  monday.setHours(0, 0, 0, 0);
-  const sunday = new Date(monday);
-  sunday.setDate(monday.getDate() + 7);
-  return { monday, sunday };
+async function safeQuery<T>(fn: () => Promise<T>, fallback: T): Promise<T> {
+  try {
+    return await fn();
+  } catch {
+    return fallback;
+  }
 }
 
 export default async function AdminDashboard() {
-  const { monday, sunday } = getWeekRange();
-
-  const [studentsCount, parentsCount, slots, upcomingCount, weekLessons] =
+  const [studentsCount, parentsCount, upcomingCount, slotsCount] =
     await Promise.all([
-      countStudents(),
-      countParents(),
-      listAvailabilitySlots(),
-      countUpcomingLessons(),
-      listLessonsInRange(monday, sunday),
+      safeQuery(async () => {
+        const { countStudents } = await import('@/db/queries/students');
+        return countStudents();
+      }, 0),
+      safeQuery(async () => {
+        const { countParents } = await import('@/db/queries/parents');
+        return countParents();
+      }, 0),
+      safeQuery(async () => {
+        const { countUpcomingLessons } = await import('@/db/queries/lessons');
+        return countUpcomingLessons();
+      }, 0),
+      safeQuery(async () => {
+        const { listAvailabilitySlots } = await import('@/db/queries/availability');
+        return (await listAvailabilitySlots()).length;
+      }, 0),
     ]);
 
-  const todayLessons = weekLessons.filter(
-    (l) =>
-      l.startTime.toDateString() === new Date().toDateString() &&
-      l.status === 'scheduled',
-  );
-
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Dashboard</h1>
+        <div>
+          <h1 className="text-3xl font-bold">Dashboard</h1>
+          <p className="mt-1 text-muted-foreground">Witaj, Korepetytorze!</p>
+        </div>
         <Button asChild>
           <Link href="/admin/calendar">
             <Plus className="mr-2 h-4 w-4" />
@@ -75,117 +67,48 @@ export default async function AdminDashboard() {
       {/* Stats */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatsCard
-          title="Aktywni uczniowie"
+          title="Uczniowie"
           value={String(studentsCount)}
-          icon={<Users className="h-4 w-4 text-muted-foreground" />}
+          icon={<Users className="h-5 w-5" />}
           href="/admin/students"
+          color="bg-blue-50 text-blue-600"
         />
         <StatsCard
           title="Rodzice"
           value={String(parentsCount)}
-          icon={<UserCog className="h-4 w-4 text-muted-foreground" />}
+          icon={<UserCog className="h-5 w-5" />}
           href="/admin/parents"
-        />
-        <StatsCard
-          title="Lekcje w tym tygodniu"
-          value={String(weekLessons.filter((l) => l.status !== 'cancelled').length)}
-          icon={<Calendar className="h-4 w-4 text-muted-foreground" />}
-          href="/admin/calendar"
+          color="bg-emerald-50 text-emerald-600"
         />
         <StatsCard
           title="Nadchodzące lekcje"
           value={String(upcomingCount)}
-          icon={<Clock className="h-4 w-4 text-muted-foreground" />}
+          icon={<Calendar className="h-5 w-5" />}
           href="/admin/calendar"
+          color="bg-amber-50 text-amber-600"
+        />
+        <StatsCard
+          title="Sloty dostępności"
+          value={String(slotsCount)}
+          icon={<Clock className="h-5 w-5" />}
+          href="/admin/availability"
+          color="bg-purple-50 text-purple-600"
         />
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        {/* Today's lessons */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>Dzisiejsze lekcje</CardTitle>
-            <Button variant="ghost" size="sm" asChild>
-              <Link href="/admin/calendar">
-                Kalendarz
-                <ChevronRight className="ml-1 h-3.5 w-3.5" />
-              </Link>
-            </Button>
-          </CardHeader>
-          <CardContent>
-            {todayLessons.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                Brak lekcji na dziś. Sprawdź kalendarz, aby zobaczyć
-                nadchodzące lekcje.
-              </p>
-            ) : (
-              <div className="space-y-2">
-                {todayLessons.map((lesson) => (
-                  <Link
-                    key={lesson.id}
-                    href={`/admin/lessons/${lesson.id}`}
-                    className="flex items-center gap-3 rounded-lg border p-3 transition-colors hover:bg-muted/50"
-                  >
-                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                      <Clock className="h-4 w-4" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">
-                        {lesson.studentFirstName} {lesson.studentLastName}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {formatTimePL(lesson.startTime)} –{' '}
-                        {formatTimePL(lesson.endTime)}
-                      </p>
-                    </div>
-                    <Badge variant="default" className="text-[10px]">
-                      {lesson.gradeLevel}
-                    </Badge>
-                  </Link>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Availability summary */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <Clock className="h-4 w-4 text-muted-foreground" />
-              Twoja dostępność
-            </CardTitle>
-            <Link
-              href="/admin/availability"
-              className="text-xs text-muted-foreground hover:underline"
-            >
-              Edytuj
-            </Link>
-          </CardHeader>
-          <CardContent>
-            {slots.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                Nie skonfigurowałeś jeszcze żadnych slotów dostępności.
-              </p>
-            ) : (
-              <ul className="space-y-1 text-sm">
-                {slots.map((slot) => (
-                  <li
-                    key={slot.id}
-                    className="flex justify-between border-b py-1 last:border-b-0"
-                  >
-                    <span className="font-medium">
-                      {DAY_NAMES[slot.dayOfWeek]}
-                    </span>
-                    <span className="text-muted-foreground">
-                      {slot.startTime.slice(0, 5)} – {slot.endTime.slice(0, 5)}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </CardContent>
-        </Card>
+      {/* Quick actions */}
+      <div>
+        <h2 className="mb-4 text-lg font-semibold">Szybkie akcje</h2>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <QuickAction href="/admin/students" icon={<Users className="h-5 w-5" />} label="Uczniowie" desc="Lista i profile uczniów" />
+          <QuickAction href="/admin/calendar" icon={<Calendar className="h-5 w-5" />} label="Kalendarz" desc="Lekcje i harmonogram" />
+          <QuickAction href="/admin/materials" icon={<BookOpen className="h-5 w-5" />} label="Materiały" desc="Pliki i linki" />
+          <QuickAction href="/admin/tasks" icon={<ClipboardList className="h-5 w-5" />} label="Zadania" desc="Zadania domowe" />
+          <QuickAction href="/admin/qa" icon={<MessageCircle className="h-5 w-5" />} label="Q&A" desc="Pytania uczniów" />
+          <QuickAction href="/admin/finances" icon={<Settings className="h-5 w-5" />} label="Finanse" desc="Pakiety i płatności" />
+          <QuickAction href="/admin/availability" icon={<Clock className="h-5 w-5" />} label="Dostępność" desc="Twoje okna czasowe" />
+          <QuickAction href="/admin/parents" icon={<UserCog className="h-5 w-5" />} label="Rodzice" desc="Konta rodziców" />
+        </div>
       </div>
     </div>
   );
@@ -196,23 +119,51 @@ function StatsCard({
   value,
   icon,
   href,
+  color,
 }: {
   title: string;
   value: string;
   icon: React.ReactNode;
-  href?: string;
+  href: string;
+  color: string;
 }) {
-  const card = (
-    <Card className={href ? 'transition-colors hover:bg-muted/50' : undefined}>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">{title}</CardTitle>
-        {icon}
-      </CardHeader>
-      <CardContent>
-        <div className="text-2xl font-bold">{value}</div>
-      </CardContent>
-    </Card>
+  return (
+    <Link href={href}>
+      <Card className="transition-all hover:-translate-y-0.5 hover:shadow-md">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
+          <div className={`rounded-lg p-2 ${color}`}>{icon}</div>
+        </CardHeader>
+        <CardContent>
+          <div className="text-3xl font-bold">{value}</div>
+        </CardContent>
+      </Card>
+    </Link>
   );
+}
 
-  return href ? <Link href={href}>{card}</Link> : card;
+function QuickAction({
+  href,
+  icon,
+  label,
+  desc,
+}: {
+  href: string;
+  icon: React.ReactNode;
+  label: string;
+  desc: string;
+}) {
+  return (
+    <Link href={href}>
+      <Card className="transition-all hover:-translate-y-0.5 hover:shadow-md">
+        <CardContent className="flex items-center gap-3 p-4">
+          <div className="rounded-lg bg-muted p-2 text-muted-foreground">{icon}</div>
+          <div>
+            <p className="text-sm font-semibold">{label}</p>
+            <p className="text-xs text-muted-foreground">{desc}</p>
+          </div>
+        </CardContent>
+      </Card>
+    </Link>
+  );
 }

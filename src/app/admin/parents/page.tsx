@@ -12,8 +12,14 @@ import { InviteParentDialog } from '@/components/admin/invite-parent-dialog';
 import { listParents } from '@/db/queries/parents';
 import { formatDatePL } from '@/lib/utils/dates';
 
+export const dynamic = 'force-dynamic';
+
+async function safeQuery<T>(fn: () => Promise<T>, fallback: T): Promise<T> {
+  try { return await fn(); } catch { return fallback; }
+}
+
 export default async function ParentsPage() {
-  const parents = await listParents();
+  const parents = await safeQuery(() => listParents(), []);
 
   return (
     <div className="space-y-6">

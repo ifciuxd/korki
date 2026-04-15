@@ -19,6 +19,12 @@ import { listAllTasks } from '@/db/queries/tasks';
 import { listStudents } from '@/db/queries/students';
 import { formatDatePL, formatDateTimePL } from '@/lib/utils/dates';
 
+export const dynamic = 'force-dynamic';
+
+async function safeQuery<T>(fn: () => Promise<T>, fallback: T): Promise<T> {
+  try { return await fn(); } catch { return fallback; }
+}
+
 const STATUS_CONFIG: Record<
   string,
   { label: string; variant: 'default' | 'warning' | 'success' | 'secondary' | 'destructive'; icon: typeof Clock }
@@ -31,8 +37,8 @@ const STATUS_CONFIG: Record<
 
 export default async function AdminTasksPage() {
   const [allTasks, students] = await Promise.all([
-    listAllTasks(100),
-    listStudents(),
+    safeQuery(() => listAllTasks(100), []),
+    safeQuery(() => listStudents(), []),
   ]);
 
   const studentOptions = students.map((s) => ({

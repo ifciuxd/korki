@@ -32,6 +32,12 @@ import { formatCents } from '@/lib/utils/cents';
 import { formatDateTimePL } from '@/lib/utils/dates';
 import { checkUnregisteredLimit } from '@/lib/utils/unregistered-limit';
 
+export const dynamic = 'force-dynamic';
+
+async function safeQuery<T>(fn: () => Promise<T>, fallback: T): Promise<T> {
+  try { return await fn(); } catch { return fallback; }
+}
+
 export default async function FinancesPage() {
   const now = new Date();
   const currentMonth = now.getMonth() + 1;
@@ -47,14 +53,14 @@ export default async function FinancesPage() {
     parents,
     students,
   ] = await Promise.all([
-    listPackages(),
-    listPayments(30),
-    getMonthlyRevenueCents(currentYear, currentMonth),
-    getTotalRevenueCents(),
-    countPaymentsByStatus(),
-    listRecentPurchases(10),
-    listParentsForSelect(),
-    listStudents(),
+    safeQuery(() => listPackages(), []),
+    safeQuery(() => listPayments(30), []),
+    safeQuery(() => getMonthlyRevenueCents(currentYear, currentMonth), 0),
+    safeQuery(() => getTotalRevenueCents(), 0),
+    safeQuery(() => countPaymentsByStatus(), {} as Record<string, number>),
+    safeQuery(() => listRecentPurchases(10), []),
+    safeQuery(() => listParentsForSelect(), []),
+    safeQuery(() => listStudents(), []),
   ]);
 
   const limitStatus = checkUnregisteredLimit(monthlyRevenue);

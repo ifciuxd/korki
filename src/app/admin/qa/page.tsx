@@ -16,6 +16,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { listAllQAThreads } from '@/db/queries/qa';
 import { formatDateTimePL } from '@/lib/utils/dates';
 
+export const dynamic = 'force-dynamic';
+
+async function safeQuery<T>(fn: () => Promise<T>, fallback: T): Promise<T> {
+  try { return await fn(); } catch { return fallback; }
+}
+
 const CONTEXT_LABELS: Record<string, string> = {
   general: 'Ogólne',
   task: 'Zadanie',
@@ -23,7 +29,7 @@ const CONTEXT_LABELS: Record<string, string> = {
 };
 
 export default async function AdminQAPage() {
-  const allThreads = await listAllQAThreads(100);
+  const allThreads = await safeQuery(() => listAllQAThreads(100), []);
 
   const openThreads = allThreads.filter((t) => !t.isResolved);
   const resolvedThreads = allThreads.filter((t) => t.isResolved);

@@ -3,6 +3,12 @@ import { CreateLessonDialog } from '@/components/admin/create-lesson-dialog';
 import { listLessonsInRange } from '@/db/queries/lessons';
 import { listStudents } from '@/db/queries/students';
 
+export const dynamic = 'force-dynamic';
+
+async function safeQuery<T>(fn: () => Promise<T>, fallback: T): Promise<T> {
+  try { return await fn(); } catch { return fallback; }
+}
+
 function getMonday(dateStr?: string): Date {
   const d = dateStr ? new Date(dateStr) : new Date();
   const day = d.getDay();
@@ -24,8 +30,8 @@ export default async function CalendarPage({
   weekEnd.setDate(weekEnd.getDate() + 7);
 
   const [lessons, students] = await Promise.all([
-    listLessonsInRange(weekStart, weekEnd),
-    listStudents(),
+    safeQuery(() => listLessonsInRange(weekStart, weekEnd), []),
+    safeQuery(() => listStudents(), []),
   ]);
 
   const studentOptions = students.map((s) => ({

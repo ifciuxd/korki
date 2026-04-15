@@ -17,6 +17,12 @@ import { listMathTopics } from '@/db/queries/math-topics';
 import { listStudents } from '@/db/queries/students';
 import { formatDatePL } from '@/lib/utils/dates';
 
+export const dynamic = 'force-dynamic';
+
+async function safeQuery<T>(fn: () => Promise<T>, fallback: T): Promise<T> {
+  try { return await fn(); } catch { return fallback; }
+}
+
 const fileTypeConfig: Record<
   string,
   { icon: typeof FileText; label: string; color: string }
@@ -28,9 +34,9 @@ const fileTypeConfig: Record<
 
 export default async function MaterialsPage() {
   const [allMaterials, topics, students] = await Promise.all([
-    listMaterials(),
-    listMathTopics(),
-    listStudents(),
+    safeQuery(() => listMaterials(), []),
+    safeQuery(() => listMathTopics(), []),
+    safeQuery(() => listStudents(), []),
   ]);
 
   const studentOptions = students.map((s) => ({

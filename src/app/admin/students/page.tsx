@@ -14,10 +14,16 @@ import { listParentsForSelect } from '@/db/queries/parents';
 import { formatDatePL } from '@/lib/utils/dates';
 import { EXAM_TARGETS } from '@/lib/constants';
 
+export const dynamic = 'force-dynamic';
+
+async function safeQuery<T>(fn: () => Promise<T>, fallback: T): Promise<T> {
+  try { return await fn(); } catch { return fallback; }
+}
+
 export default async function StudentsPage() {
   const [students, parents] = await Promise.all([
-    listStudents(),
-    listParentsForSelect(),
+    safeQuery(() => listStudents(), []),
+    safeQuery(() => listParentsForSelect(), []),
   ]);
 
   return (
